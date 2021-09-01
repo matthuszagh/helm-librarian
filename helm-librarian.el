@@ -17,8 +17,7 @@
 
 (defun helm-librarian//candidates ()
   "Helm candidates."
-  (let ((candidates nil)
-        (json-parse-result
+  (let ((json-parse-result
          (ignore-errors
            (json-parse-string
             (shell-command-to-string
@@ -28,14 +27,9 @@
                      " search "
                      helm-pattern))))))
     (if json-parse-result
-        (progn
-          (let ((results (seq-into json-parse-result 'list)))
-            (dolist (result results)
-              (setq candidates
-                    (append
-                     candidates
-                     (list (gethash "title" result))))))))
-    candidates))
+        (mapcar (lambda (result)
+                  (gethash "title" result))
+                json-parse-result))))
 
 (defun helm-librarian//action (candidate)
   "Helm action performed when selecting CANDIDATE."
