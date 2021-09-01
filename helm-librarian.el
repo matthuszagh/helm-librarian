@@ -36,11 +36,14 @@ Returns an alist with the first item"
          (ignore-errors
            (json-parse-string
             (shell-command-to-string
+             ;; TODO the quotes will prevent doing something like
+             ;; r"search string".
              (concat librarian-executable
                      " -d "
                      librarian-library-directory
-                     " search "
-                     helm-pattern))))))
+                     " search \""
+                     helm-pattern
+                     "\""))))))
     (if json-parse-result
         (mapcar (lambda (result)
                   `(,(helm-librarian//candidate-display result) . ,result))
