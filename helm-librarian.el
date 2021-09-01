@@ -4,6 +4,9 @@
 
 ;;; Code:
 
+(require 'helm)
+(require 'helm-source)
+
 (defvar librarian-executable
   "librarian"
   "Librarian executable.")
