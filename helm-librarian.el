@@ -81,13 +81,23 @@ CANDIDATE is a hash table corresponding to the json-parsed resource."
       (setq index (+ 1 index)))
     display-string))
 
-;; TODO this should handle websites
+(defun helm-librarian//render-website (dir)
+  "Open and render a website with shr.
+DIR is the website base directory."
+  ;; Assume only one htm/html file.
+  (let ((file (car (directory-files-recursively dir "\\.htm[l]?"))))
+    (find-file file)
+    (shr-render-buffer (get-file-buffer file))))
+
 (defun helm-librarian//open-resource-file (candidate)
   "Open the file corresponding to the resource CANDIDATE.
 The resource is formatted as a hash table as returned by `json-parse-string'."
-  (find-file (concat librarian-library-directory
-                     "/resources/"
-                     (elt (gethash "historical_checksums" candidate) 0))))
+  (let ((path (concat librarian-library-directory
+                      "/resources/"
+                      (elt (gethash "historical_checksums" candidate) 0))))
+    (if (string-equal "website" (gethash "content_type" candidate))
+        (helm-librarian//render-website path)
+      (find-file path))))
 
 (defun helm-librarian//candidates ()
   "Helm candidates.
