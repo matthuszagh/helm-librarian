@@ -2,6 +2,10 @@
 
 ;;; Commentary:
 
+;; helm-librarian provides a helm interface for the 'librarian search'
+;; command along with additional convenience utilities for displaying
+;; matching resources.
+
 ;;; Code:
 
 (require 'helm)
@@ -16,24 +20,43 @@
   "Library directory.")
 
 (defvar librarian-display-string-format
-  "@title@ (@authors[0].last@, @date.year@) [@content_type@/@document_type@]"
+  "@title@ (@authors[0].last@, @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
   "Specifies how each candidate should be displayed in the helm buffer.
 Parts of the string between '@' are replaced with their
 corresponding resource value..")
 
+(defface librarian-face-title
+  `((t :foreground ,(face-foreground 'default)))
+  "Properties applied to the display of a resource's title.")
+
+(defun librarian//datetime-year (datetime)
+  "Extract the year from a datetime string, DATETIME."
+  (if (and (not (eq datetime :null))
+           (>= (length datetime) 4))
+      (substring datetime 0 4)
+    ""))
+
 (defun helm-librarian//field-value (field resource)
   "Get the field value for a resource.
 FIELD is a string specifier of the field and RESOURCE is a hash
-table of the resource.  FIELD can accomodate embedded lists and
-hash tables.  To get an element of a list specify the index with
-[index] (e.g., authors[0]).  To specify the key of a hash table,
-use a dot ('.') followed by the key name (e.g.,
-authors[0].last)."
+table of the resource.  FIELD can accomodate embedded lists, hash
+tables and custom functions.  To get an element of a list specify
+the index with [index] (e.g., authors[0]).  To specify the key of
+a hash table, use a dot ('.') followed by the key name (e.g.,
+authors[0].last).  To use a custom function, prefix the function
+name with a single quote (e.g.,
+@datetime.'librarian//datetime-year@).  A custom function will be
+applied to the portion of the resource that's already been
+extracted by the field specifier.  So, for instance
+@datetime.'librarian//datetime-year@ will extract the datetime
+string for a resource and then call 'librarian//datetime-year,
+which takes the datetime string as an argument."
   ;; Separate `field' into keys. Then, use each key (and the
   ;; associated list index, if provided) to restrict the original
   ;; resource hash, `resource' to the subhash corresponding to the
   ;; value of the key.
-  (let* ((field-list (split-string field "\\.")))
+  (let* ((field-list (split-string field "\\."))
+         (initial-key (car (split-string (car field-list) "\\["))))
     (dolist (field field-list)
       ;; List elements can be hash tables. Normally, we access some
       ;; desired element of the list and then use the key to get the
@@ -55,13 +78,19 @@ authors[0].last)."
                   (if (seq-empty-p value)
                       (setq resource "")
                     (setq resource (elt (gethash key resource) index))))
-              (setq resource (gethash key resource)))))))
-  ;; Replace null values with an empty string.
-  (if (eq resource :null)
-      ""
-    (if (numberp resource)
-        (number-to-string resource)
-      resource)))
+              (if (equal (substring key 0 1) "'")
+                  (setq resource (funcall (intern (substring key 1 nil)) resource))
+                (setq resource (gethash key resource)))))))
+    ;; Replace null values with an empty string.
+    (if (eq resource :null)
+        ""
+      (if (numberp resource)
+          (number-to-string resource)
+        ;; TODO I think there has to be better way to do this, possibly with macros.
+        (if (string-equal initial-key "title")
+            (propertize resource
+                        'face 'librarian-face-title)
+          resource)))))
 
 (defun helm-librarian//candidate-display (candidate)
   "Used to generate the string display for each resource in the helm buffer.
