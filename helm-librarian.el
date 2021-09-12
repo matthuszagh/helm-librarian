@@ -20,10 +20,10 @@
   "Library directory.")
 
 (defvar librarian-display-string-format
-  "@title@ (@authors[0].last@, @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
+  "@title@ (@authors[0].'librarian//name-last@, @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
   "Specifies how each candidate should be displayed in the helm buffer.
 Parts of the string between '@' are replaced with their
-corresponding resource value..")
+corresponding resource value.")
 
 (defface librarian-face-title
   `((t :foreground ,(face-foreground 'default)))
@@ -34,6 +34,19 @@ corresponding resource value..")
   (if (and (not (eq datetime :null))
            (>= (length datetime) 4))
       (substring datetime 0 4)
+    ""))
+
+(defun librarian//name-last (name)
+  "Extract the last name from a name string, NAME."
+  (if (not (eq name :null))
+      (let* ((subnames (split-string name " "))
+             (subname-count (length subnames)))
+        (if (eq subname-count 1)
+            (car subnames)
+          (if (eq subname-count 2)
+              (nth 1 subnames)
+            (if (eq subname-count 3)
+                (nth 2 subnames)))))
     ""))
 
 (defun helm-librarian//field-value (field resource)
