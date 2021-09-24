@@ -19,8 +19,15 @@
   "~/library"
   "Library directory.")
 
+;; TODO add ability to associate part of string with field such that
+;; it only appears when that field is non-empty. For example, "-
+;; @datetime...@". Probably do this with an additional set of
+;; delimeters.
+
+;; TODO add ability to add OR fields. Basically, take first non-blank
+;; entry.
 (defvar librarian-display-string-format
-  "@title@ (@authors[0].'librarian//name-last@, @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
+  "@title@ (@authors[0].'librarian//name-last@, @version@ - @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
   "Specifies how each candidate should be displayed in the helm buffer.
 Parts of the string between '@' are replaced with their
 corresponding resource value.")
@@ -143,7 +150,9 @@ The resource is formatted as a hash table as returned by `json-parse-string'."
 
 (defun helm-librarian//candidates ()
   "Helm candidates.
-Returns an alist with the first item"
+Returns an alist in which the first item is the display string
+and the second item is the hash table passed to
+`helm-librarian//action'."
   (let ((json-parse-result
          (ignore-errors
            (json-parse-string
