@@ -19,23 +19,6 @@
   "~/library"
   "Library directory.")
 
-;; TODO add ability to associate part of string with field such that
-;; it only appears when that field is non-empty. For example, "-
-;; @datetime...@". Probably do this with an additional set of
-;; delimeters.
-
-;; TODO add ability to add OR fields. Basically, take first non-blank
-;; entry.
-(defvar librarian-display-string-format
-  "@title@ (@authors[0].'librarian//name-last@, @version@ - @datetime.'librarian//datetime-year@) [@content_type@/@document_type@]"
-  "Specifies how each candidate should be displayed in the helm buffer.
-Parts of the string between '@' are replaced with their
-corresponding resource value.")
-
-(defface librarian-face-title
-  `((t :foreground ,(face-foreground 'default)))
-  "Properties applied to the display of a resource's title.")
-
 (defun librarian//datetime-year (datetime)
   "Extract the year from a datetime string, DATETIME."
   (if (and (not (eq datetime :null))
@@ -56,7 +39,57 @@ corresponding resource value.")
                 (nth 2 subnames)))))
     ""))
 
-(defun helm-librarian//field-value (field resource)
+(defun helm-librarian//default-display-function (resource)
+  "The default display function for RESOURCE.
+RESOURCE is a hash map representing the resource to be
+displayed."
+  (let ((prefix (concat
+                 (helm-librarian/field-value "title" resource)
+                 (helm-librarian/treat-as-unit
+                  ", Vol. "
+                  (lambda ()
+                    (helm-librarian/field-value "volume" resource)))
+                 (helm-librarian/treat-as-unit
+                  " [v"
+                  (lambda ()
+                    (helm-librarian/field-value "version" resource))
+                  "]")
+                 ))
+        (suffix
+         (concat
+          (propertize
+           (helm-librarian/first-nonempty-field
+            (helm-librarian/field-value "authors[0].'librarian//name-last" resource)
+            (helm-librarian/field-value "organization" resource))
+           'face
+           'italic)
+          (helm-librarian/treat-as-unit
+           ", "
+           (lambda ()
+             (helm-librarian/field-value "datetime.'librarian//datetime-year" resource)))
+          (propertize
+           (helm-librarian/treat-as-unit
+            " ["
+            (lambda ()
+              (helm-librarian/field-value "content_type" resource))
+            "/"
+            (lambda ()
+              (helm-librarian/field-value "document_type" resource))
+            "]")
+           'face
+           '(foreground-color . "grey40")))))
+    (concat
+     (string-pad prefix
+                 (+ (length prefix)
+                    (max (- (window-width) (length prefix) (length suffix)) 1)))
+     suffix)))
+
+(defcustom librarian-display-function #'helm-librarian//default-display-function
+  "A function used to display resource candidates in the helm buffer.
+The function takes a single argument that is the resource to display."
+  :type 'function)
+
+(defun helm-librarian/field-value (field resource)
   "Get the field value for a resource.
 FIELD is a string specifier of the field and RESOURCE is a hash
 table of the resource.  FIELD can accomodate embedded lists, hash
@@ -106,29 +139,53 @@ which takes the datetime string as an argument."
         ""
       (if (numberp resource)
           (number-to-string resource)
-        ;; TODO I think there has to be better way to do this, possibly with macros.
-        (if (string-equal initial-key "title")
-            (propertize resource
-                        'face 'librarian-face-title)
-          resource)))))
+        resource))))
 
-(defun helm-librarian//candidate-display (candidate)
-  "Used to generate the string display for each resource in the helm buffer.
-CANDIDATE is a hash table corresponding to the json-parsed resource."
-  ;; `format-list' contains a list of substrings of the format
-  ;; specifier. All elements at odd indices correspond to parts of the
-  ;; string that had been delimited by '@'.
-  (let ((format-list (split-string librarian-display-string-format "@"))
-        (index 0)
-        (display-string ""))
-    (while (< index (length format-list))
-      (setq display-string
-            (concat display-string
-                    (if (eq (mod index 2) 0)
-                        (nth index format-list)
-                      (helm-librarian//field-value (nth index format-list) candidate))))
-      (setq index (+ 1 index)))
-    display-string))
+(defun helm-librarian//eval-string-or-function (string-or-function)
+  "If STRING-OR-FUNCTION is a string, return that string, otherwise
+evaluate it as a function."
+  (if (equal (type-of string-or-function) 'string)
+      string-or-function
+    (funcall (string-or-function))))
+
+(defun helm-librarian/first-nonempty-field (&rest args)
+  "Return the value of the first argument in ARGS that evaluates to
+a nonempty string.  ARGS are one or more functions, each of which
+must evaluate to a string.  If all functions evaluate to empty
+strings, this function returns the empty string."
+  (if (seq-empty-p args)
+      ""
+    (let* ((i 0)
+           (result (helm-librarian//eval-string-or-function (nth i args)))
+           (list-length (length args)))
+      (while (and
+              (string-empty-p result)
+              (< (+ i 1) list-length))
+        (setq i (+ i 1))
+        (setq result (helm-librarian//eval-string-or-function (nth i args))))
+      result)))
+
+;; TODO this function has the downside of requiring function arguments
+;; as lambda expressions. It should probably be implemented as a macro
+;; so this is not necessary.
+(defun helm-librarian/treat-as-unit (&rest args)
+  "Treat the list of strings and functions in ARGS as a unit.
+More specifically, this function will concatenate and return the
+value of all arguments as long as a minimum of one of the
+function arguments returns a non-empty string.  If all function
+arguments return an empty string, an empty string is returned."
+  (let ((non-empty-function-string nil)
+        (result ""))
+    (dolist (string-or-function args)
+      (if (equal (type-of string-or-function) 'string)
+          (setq result (concat result string-or-function))
+        (let ((function-result (funcall string-or-function)))
+          (unless (string-empty-p function-result)
+            (setq result (concat result function-result))
+            (setq non-empty-function-string t)))))
+    (if (eq non-empty-function-string t)
+        result
+      "")))
 
 (defun helm-librarian//render-website (dir)
   "Open and render a website with shr.
@@ -167,7 +224,7 @@ and the second item is the hash table passed to
                      "\""))))))
     (if json-parse-result
         (mapcar (lambda (result)
-                  `(,(helm-librarian//candidate-display result) . ,result))
+                  `(,(funcall librarian-display-function result) . ,result))
                 json-parse-result))))
 
 (defun helm-librarian//action (candidate)
