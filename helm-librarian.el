@@ -50,7 +50,11 @@ displayed."
                   (lambda ()
                     (helm-librarian/field-value "volume" resource)))
                  (helm-librarian/treat-as-unit
-                  " [v"
+                  " ["
+                  (propertize
+                   "ver. "
+                   'face
+                   'italic)
                   (lambda ()
                     (helm-librarian/field-value "version" resource))
                   "]")
