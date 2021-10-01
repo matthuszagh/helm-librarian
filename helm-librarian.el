@@ -125,19 +125,19 @@ which takes the datetime string as an argument."
       ;; empty string. TODO it would actually be more efficient to
       ;; break out of the loop, but I'm not sure this is possible with
       ;; `dolist'.
-      (if (not (eq resource ""))
-          (let* ((key-index (split-string field "\\["))
-                 (key (car key-index)))
-            ;; "\\[" didn't match if list has 1 element
-            (if (not (eq (length key-index) 1))
-                (let ((index (string-to-number (nth 0 (split-string (nth 1 key-index) "\\]"))))
-                      (value (gethash key resource)))
-                  (if (seq-empty-p value)
-                      (setq resource "")
-                    (setq resource (elt (gethash key resource) index))))
-              (if (equal (substring key 0 1) "'")
-                  (setq resource (funcall (intern (substring key 1 nil)) resource))
-                (setq resource (gethash key resource)))))))
+      (unless (eq resource "")
+        (let* ((key-index (split-string field "\\["))
+               (key (car key-index)))
+          ;; "\\[" didn't match if list has 1 element
+          (if (not (eq (length key-index) 1))
+              (let ((index (string-to-number (nth 0 (split-string (nth 1 key-index) "\\]"))))
+                    (value (gethash key resource "")))
+                (if (seq-empty-p value)
+                    (setq resource "")
+                  (setq resource (elt (gethash key resource "") index))))
+            (if (equal (substring key 0 1) "'")
+                (setq resource (funcall (intern (substring key 1 nil)) resource))
+              (setq resource (gethash key resource "")))))))
     ;; Replace null values with an empty string.
     (if (eq resource :null)
         ""
@@ -205,7 +205,7 @@ The resource is formatted as a hash table as returned by `json-parse-string'."
   (let ((path (concat librarian-library-directory
                       "/resources/"
                       (elt (gethash "historical_checksums" candidate) 0))))
-    (if (string-equal "website" (gethash "content_type" candidate))
+    (if (string-equal "website" (gethash "content_type" candidate ""))
         (helm-librarian//render-website path)
       (find-file path))))
 
