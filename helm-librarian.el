@@ -43,7 +43,11 @@
   "The default display function for RESOURCE.
 RESOURCE is a hash map representing the resource to be
 displayed."
-  (let ((prefix (concat
+  ;; TODO for some reason `(window-width (get-buffer-window))' reports
+  ;; accurate results but `(window-width)' doesn't. From the
+  ;; documentation, I can't tell what the difference between them.
+  (let ((window-width (window-width (get-buffer-window)))
+        (prefix (concat
                  (helm-librarian/field-value "title" resource)
                  (helm-librarian/treat-as-unit
                   ", Vol. "
@@ -82,10 +86,18 @@ displayed."
             "]")
            'face
            '(foreground-color . "grey40")))))
+    (if (> (+ (length prefix)
+              1
+              (length suffix))
+           window-width)
+        (setq prefix (concat (substring prefix nil (- window-width
+                                                      2
+                                                      (length suffix)))
+                             "…")))
     (concat
      (string-pad prefix
                  (+ (length prefix)
-                    (max (- (window-width) (length prefix) (length suffix)) 1)))
+                    (max (- window-width (length prefix) (length suffix)) 1)))
      suffix)))
 
 (defcustom librarian-display-function #'helm-librarian//default-display-function
