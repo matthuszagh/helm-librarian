@@ -19,11 +19,11 @@
   "~/library"
   "Library directory.")
 
-(defun librarian//datetime-year (datetime)
-  "Extract the year from a datetime string, DATETIME."
-  (if (and (not (eq datetime :null))
-           (>= (length datetime) 4))
-      (substring datetime 0 4)
+(defun librarian//date-year (date)
+  "Extract the year from a date string, DATE."
+  (if (and (not (eq date :null))
+           (>= (length date) 4))
+      (substring date 0 4)
     ""))
 
 (defun librarian//name-last (name)
@@ -67,14 +67,14 @@ displayed."
          (concat
           (propertize
            (helm-librarian/first-nonempty-field
-            (helm-librarian/field-value "authors[0].'librarian//name-last" resource)
+            (helm-librarian/field-value "author[0].'librarian//name-last" resource)
             (helm-librarian/field-value "organization" resource))
            'face
            'italic)
           (helm-librarian/treat-as-unit
            ", "
            (lambda ()
-             (helm-librarian/field-value "datetime.'librarian//datetime-year" resource)))
+             (helm-librarian/field-value "date.'librarian//date-year" resource)))
           (propertize
            (helm-librarian/treat-as-unit
             " ["
@@ -114,12 +114,12 @@ the index with [index] (e.g., authors[0]).  To specify the key of
 a hash table, use a dot ('.') followed by the key name (e.g.,
 authors[0].last).  To use a custom function, prefix the function
 name with a single quote (e.g.,
-@datetime.'librarian//datetime-year@).  A custom function will be
+@date.'librarian//date-year@).  A custom function will be
 applied to the portion of the resource that's already been
 extracted by the field specifier.  So, for instance
-@datetime.'librarian//datetime-year@ will extract the datetime
-string for a resource and then call 'librarian//datetime-year,
-which takes the datetime string as an argument."
+@date.'librarian//date-year@ will extract the date
+string for a resource and then call 'librarian//date-year,
+which takes the date string as an argument."
   ;; Separate `field' into keys. Then, use each key (and the
   ;; associated list index, if provided) to restrict the original
   ;; resource hash, `resource' to the subhash corresponding to the
