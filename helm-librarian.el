@@ -50,6 +50,10 @@ displayed."
         (prefix (concat
                  (helm-librarian/field-value "title" resource)
                  (helm-librarian/treat-as-unit
+                  ": "
+                  (lambda ()
+                    (helm-librarian/field-value "subtitle" resource)))
+                 (helm-librarian/treat-as-unit
                   ", Vol. "
                   (lambda ()
                     (helm-librarian/field-value "volume" resource)))
