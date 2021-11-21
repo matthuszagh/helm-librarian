@@ -79,10 +79,10 @@ displayed."
            (helm-librarian/treat-as-unit
             " ["
             (lambda ()
-              (helm-librarian/field-value "content_type" resource))
+              (helm-librarian/field-value "content" resource))
             "/"
             (lambda ()
-              (helm-librarian/field-value "document_type" resource))
+              (helm-librarian/field-value "document" resource))
             "]")
            'face
            '(foreground-color . "grey40")))))
@@ -217,7 +217,7 @@ The resource is formatted as a hash table as returned by `json-parse-string'."
   (let ((path (concat librarian-library-directory
                       "/resources/"
                       (elt (gethash "historical_checksums" candidate) 0))))
-    (if (string-equal "website" (gethash "content_type" candidate ""))
+    (if (string-equal "website" (gethash "content" candidate ""))
         (helm-librarian//render-website path)
       (find-file path))))
 
