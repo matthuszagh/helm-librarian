@@ -261,7 +261,8 @@ and the second item is the hash table passed to
               :action 'helm-librarian//action
               :volatile t)
    :buffer "*helm librarian*"
-   :prompt "librarian search: "))
+   :prompt "librarian search: "
+   :input-idle-delay 0.3))
 
 (provide 'helm-librarian)
 
