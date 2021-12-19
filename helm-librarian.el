@@ -211,9 +211,16 @@ arguments return an empty string, an empty string is returned."
   "Open and render a website with shr.
 DIR is the website base directory."
   ;; Assume only one htm/html file.
-  (let ((file (car (directory-files-recursively dir "\\.htm[l]?"))))
-    (find-file file)
-    (shr-render-buffer (get-file-buffer file))))
+  (let* ((file (car (directory-files-recursively dir "\\.htm[l]?")))
+         (file-buffer (find-file file))
+         (file-window (selected-window))
+         (render-buffer (shr-render-buffer (get-file-buffer file))))
+    (set-window-buffer (selected-window) (window-old-buffer))
+    ;; `shr-render-buffer' stupidly doesn't return the buffer
+    ;; name. Instead, it always uses "*html*".
+    (set-window-buffer file-window "*html*")
+    (select-window file-window)
+    (kill-buffer file-buffer)))
 
 (defun helm-librarian//open-resource-file (candidate)
   "Open the file corresponding to the resource CANDIDATE.
@@ -262,7 +269,7 @@ and the second item is the hash table passed to
               :volatile t)
    :buffer "*helm librarian*"
    :prompt "librarian search: "
-   :input-idle-delay 0.3))
+   :input-idle-delay 0.5))
 
 (provide 'helm-librarian)
 
