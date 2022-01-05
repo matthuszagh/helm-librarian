@@ -266,6 +266,7 @@ and the second item is the hash table passed to
               :match-dynamic t
               :candidates 'helm-librarian//candidates
               :action 'helm-librarian//action
+              :nohighlight t
               :volatile t)
    :buffer "*helm librarian*"
    :prompt "librarian search: "
