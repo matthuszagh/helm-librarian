@@ -57,15 +57,25 @@ displayed."
                   ", Vol. "
                   (lambda ()
                     (helm-librarian/field-value "volume" resource)))
-                 (helm-librarian/treat-as-unit
-                  " ["
-                  (propertize
-                   "ver. "
-                   'face
-                   'italic)
-                  (lambda ()
-                    (helm-librarian/field-value "version" resource))
-                  "]")
+                 (helm-librarian/first-nonempty-field
+                  (helm-librarian/treat-as-unit
+                   " ["
+                   (propertize
+                    "ed. "
+                    'face
+                    'italic)
+                   (lambda ()
+                     (helm-librarian/field-value "edition" resource))
+                   "]")
+                  (helm-librarian/treat-as-unit
+                   " ["
+                   (propertize
+                    "ver. "
+                    'face
+                    'italic)
+                   (lambda ()
+                     (helm-librarian/field-value "version" resource))
+                   "]"))
                  ))
         (suffix
          (concat
@@ -192,8 +202,9 @@ strings, this function returns the empty string."
   "Treat the list of strings and functions in ARGS as a unit.
 More specifically, this function will concatenate and return the
 value of all arguments as long as a minimum of one of the
-function arguments returns a non-empty string.  If all function
-arguments return an empty string, an empty string is returned."
+function arguments (not string arguments) returns a non-empty
+string.  If all function arguments return an empty string, an
+empty string is returned."
   (let ((non-empty-function-string nil)
         (result ""))
     (dolist (string-or-function args)
