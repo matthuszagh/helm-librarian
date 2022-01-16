@@ -39,6 +39,53 @@
                 (nth 2 subnames)))))
     ""))
 
+(defun helm-librarian//eval-string-or-function (string-or-function)
+  "If STRING-OR-FUNCTION is a string, return that string, otherwise
+evaluate it as a function."
+  (if (equal (type-of string-or-function) 'string)
+      string-or-function
+    (funcall (string-or-function))))
+
+(defun helm-librarian/first-nonempty-field (&rest args)
+  "Return the value of the first argument in ARGS that evaluates to
+a nonempty string.  ARGS are one or more functions, each of which
+must evaluate to a string.  If all functions evaluate to empty
+strings, this function returns the empty string."
+  (if (seq-empty-p args)
+      ""
+    (let* ((i 0)
+           (result (helm-librarian//eval-string-or-function (nth i args)))
+           (list-length (length args)))
+      (while (and
+              (string-empty-p result)
+              (< (+ i 1) list-length))
+        (setq i (+ i 1))
+        (setq result (helm-librarian//eval-string-or-function (nth i args))))
+      result)))
+
+;; TODO this function has the downside of requiring function arguments
+;; as lambda expressions. It should probably be implemented as a macro
+;; so this is not necessary.
+(defun helm-librarian/treat-as-unit (&rest args)
+  "Treat the list of strings and functions in ARGS as a unit.
+More specifically, this function will concatenate and return the
+value of all arguments as long as a minimum of one of the
+function arguments (not string arguments) returns a non-empty
+string.  If all function arguments return an empty string, an
+empty string is returned."
+  (let ((non-empty-function-string nil)
+        (result ""))
+    (dolist (string-or-function args)
+      (if (equal (type-of string-or-function) 'string)
+          (setq result (concat result string-or-function))
+        (let ((function-result (funcall string-or-function)))
+          (unless (string-empty-p function-result)
+            (setq result (concat result function-result))
+            (setq non-empty-function-string t)))))
+    (if (eq non-empty-function-string t)
+        result
+      "")))
+
 (defun helm-librarian//default-display-function (resource)
   "The default display function for RESOURCE.
 RESOURCE is a hash map representing the resource to be
@@ -170,53 +217,6 @@ which takes the date string as an argument."
       (if (numberp resource)
           (number-to-string resource)
         resource))))
-
-(defun helm-librarian//eval-string-or-function (string-or-function)
-  "If STRING-OR-FUNCTION is a string, return that string, otherwise
-evaluate it as a function."
-  (if (equal (type-of string-or-function) 'string)
-      string-or-function
-    (funcall (string-or-function))))
-
-(defun helm-librarian/first-nonempty-field (&rest args)
-  "Return the value of the first argument in ARGS that evaluates to
-a nonempty string.  ARGS are one or more functions, each of which
-must evaluate to a string.  If all functions evaluate to empty
-strings, this function returns the empty string."
-  (if (seq-empty-p args)
-      ""
-    (let* ((i 0)
-           (result (helm-librarian//eval-string-or-function (nth i args)))
-           (list-length (length args)))
-      (while (and
-              (string-empty-p result)
-              (< (+ i 1) list-length))
-        (setq i (+ i 1))
-        (setq result (helm-librarian//eval-string-or-function (nth i args))))
-      result)))
-
-;; TODO this function has the downside of requiring function arguments
-;; as lambda expressions. It should probably be implemented as a macro
-;; so this is not necessary.
-(defun helm-librarian/treat-as-unit (&rest args)
-  "Treat the list of strings and functions in ARGS as a unit.
-More specifically, this function will concatenate and return the
-value of all arguments as long as a minimum of one of the
-function arguments (not string arguments) returns a non-empty
-string.  If all function arguments return an empty string, an
-empty string is returned."
-  (let ((non-empty-function-string nil)
-        (result ""))
-    (dolist (string-or-function args)
-      (if (equal (type-of string-or-function) 'string)
-          (setq result (concat result string-or-function))
-        (let ((function-result (funcall string-or-function)))
-          (unless (string-empty-p function-result)
-            (setq result (concat result function-result))
-            (setq non-empty-function-string t)))))
-    (if (eq non-empty-function-string t)
-        result
-      "")))
 
 (defun helm-librarian//render-website (dir)
   "Open and render a website with shr.
