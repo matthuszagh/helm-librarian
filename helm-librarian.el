@@ -93,60 +93,62 @@ displayed."
   ;; TODO for some reason `(window-width (get-buffer-window))' reports
   ;; accurate results but `(window-width)' doesn't. From the
   ;; documentation, I can't tell what the difference between them.
-  (let ((window-width (window-width (get-buffer-window)))
-        (prefix (concat
-                 (helm-librarian/field-value "title" resource)
-                 (helm-librarian/treat-as-unit
-                  ": "
-                  (lambda ()
-                    (helm-librarian/field-value "subtitle" resource)))
-                 (helm-librarian/treat-as-unit
-                  ", Vol. "
-                  (lambda ()
-                    (helm-librarian/field-value "volume" resource)))
-                 (helm-librarian/first-nonempty-field
+  (let* ((window-width (window-width (get-buffer-window)))
+         (edition (helm-librarian/field-value "edition" resource))
+         (version (helm-librarian/field-value "version" resource))
+         (edition-version (if (and (not (equal edition ""))
+                                   (not (equal version "")))
+                              ;; both edition and version present
+                              (concat "ed. " edition ", ver. " version)
+                            (if (not (equal edition ""))
+                                ;; only edition present
+                                (concat "ed. " edition)
+                              (if (not (equal version ""))
+                                  ;; only version present
+                                  (concat "ver. " version)
+                                ;; neither present
+                                ""))))
+         (prefix (concat
+                  (helm-librarian/field-value "title" resource)
+                  (helm-librarian/treat-as-unit
+                   ": "
+                   (lambda ()
+                     (helm-librarian/field-value "subtitle" resource)))
+                  (helm-librarian/treat-as-unit
+                   ", Vol. "
+                   (lambda ()
+                     (helm-librarian/field-value "volume" resource)))
                   (helm-librarian/treat-as-unit
                    " ["
-                   (propertize
-                    "ed. "
-                    'face
-                    'italic)
                    (lambda ()
-                     (helm-librarian/field-value "edition" resource))
-                   "]")
-                  (helm-librarian/treat-as-unit
-                   " ["
-                   (propertize
-                    "ver. "
-                    'face
-                    'italic)
-                   (lambda ()
-                     (helm-librarian/field-value "version" resource))
-                   "]"))
-                 ))
-        (suffix
-         (concat
-          (propertize
-           (helm-librarian/first-nonempty-field
-            (helm-librarian/field-value "author[0].'librarian//name-last" resource)
-            (helm-librarian/field-value "organization" resource))
-           'face
-           'italic)
-          (helm-librarian/treat-as-unit
-           ", "
-           (lambda ()
-             (helm-librarian/field-value "date.'librarian//date-year" resource)))
-          (propertize
+                     (propertize
+                      edition-version
+                      'face
+                      'italic))
+                   "]")))
+         (suffix
+          (concat
+           (propertize
+            (helm-librarian/first-nonempty-field
+             (helm-librarian/field-value "author[0].'librarian//name-last" resource)
+             (helm-librarian/field-value "organization" resource))
+            'face
+            'italic)
            (helm-librarian/treat-as-unit
-            " ["
+            ", "
             (lambda ()
-              (helm-librarian/field-value "content" resource))
-            "/"
-            (lambda ()
-              (helm-librarian/field-value "document" resource))
-            "]")
-           'face
-           '(foreground-color . "grey40")))))
+              (helm-librarian/field-value "date.'librarian//date-year" resource)))
+           (propertize
+            (helm-librarian/treat-as-unit
+             " ["
+             (lambda ()
+               (helm-librarian/field-value "content" resource))
+             "/"
+             (lambda ()
+               (helm-librarian/field-value "document" resource))
+             "]")
+            'face
+            '(foreground-color . "grey40")))))
     (if (> (+ (length prefix)
               1
               (length suffix))
