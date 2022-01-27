@@ -224,7 +224,8 @@ which takes the date string as an argument."
   "Open and render a website with shr.
 DIR is the website base directory."
   ;; Assume only one htm/html file.
-  (let* ((file (car (directory-files-recursively dir "\\.htm[l]?")))
+  (let* ((file (car (or (directory-files-recursively dir "index\\.htm[l]?")
+                        (directory-files-recursively dir "\\.htm[l]?"))))
          (file-buffer (find-file file))
          (file-window (selected-window))
          (render-buffer (shr-render-buffer (get-file-buffer file))))
