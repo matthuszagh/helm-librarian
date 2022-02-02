@@ -63,6 +63,9 @@ strings, this function returns the empty string."
         (setq result (helm-librarian//eval-string-or-function (nth i args))))
       result)))
 
+;; TODO add function that concatenates all elements in a list with an
+;; interleaving string (e.g., ", ").
+
 ;; TODO this function has the downside of requiring function arguments
 ;; as lambda expressions. It should probably be implemented as a macro
 ;; so this is not necessary.
@@ -96,6 +99,7 @@ displayed."
   (let* ((window-width (window-width (get-buffer-window)))
          (edition (helm-librarian/field-value "edition" resource))
          (version (helm-librarian/field-value "version" resource))
+         ;; TODO replace with new function proposal above.
          (edition-version (if (and (not (equal edition ""))
                                    (not (equal version "")))
                               ;; both edition and version present
@@ -123,6 +127,14 @@ displayed."
                    (lambda ()
                      (propertize
                       edition-version
+                      'face
+                      'italic))
+                   "]")
+                  (helm-librarian/treat-as-unit
+                   " [PN "
+                   (lambda ()
+                     (propertize
+                      (helm-librarian/field-value "part_number" resource)
                       'face
                       'italic))
                    "]")))
